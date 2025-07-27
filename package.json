@@ -1,4 +1,6 @@
-
+"scripts": {
+  "start": "next start -p $PORT"
+},
 {
   "name": "nextn",
   "version": "0.1.0",
