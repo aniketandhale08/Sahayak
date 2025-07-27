@@ -1,17 +1,16 @@
-# Use an official Node.js runtime as a parent image
+# --- Base Image ---
 FROM node:20-slim AS base
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Install dependencies
-COPY package.json ./
+# Copy package files and install dependencies
+COPY package.json package-lock.json* ./
 RUN npm install
 
-# Copy the rest of the application source code
+# Copy rest of the source code
 COPY . .
 
-# Build the Next.js application
+# Build Next.js app
 RUN npm run build
 
 # --- Production Image ---
@@ -19,26 +18,25 @@ FROM node:20-slim AS production
 
 WORKDIR /app
 
-# Set the environment to production
 ENV NODE_ENV=production
 
-# Create a non-root user for security
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
 
-# Copy the built application from the 'base' stage
+# Copy built app
 COPY --from=base /app/.next ./.next
-COPY --from=base /app/public ./public
 COPY --from=base /app/package.json ./package.json
 
-# The Next.js app will run on port 3000 by default. Cloud Run will automatically use this port.
+# If you have a `public` folder, copy it too:
+# This won't fail if `public` doesn't exist
+COPY --from=base /app/public ./public
+
 EXPOSE 3000
 
-# Change ownership of the files to the non-root user
-RUN chown -R nextjs:nodejs /app/.next
+# Make sure files are owned by non-root user
+RUN chown -R nextjs:nodejs /app
 
-# Switch to the non-root user
 USER nextjs
 
-# The command to start the application
 CMD ["npm", "start"]
